@@ -1,0 +1,167 @@
+define
+
+# entities
+
+person sub entity,
+  plays customer,
+  key email,
+  has first-name,
+  has last-name,
+  has city,
+  has phone-number,
+  has gender;
+
+bank sub entity,
+  plays provider,
+  key name,
+  has country,
+  has headquarters,
+  has free-accounts,
+  has english-customer-service,
+  has english-website,
+  has english-mobile-app,
+  has free-worldwide-withdrawals,
+  has allowed-residents;
+
+account sub entity,
+  plays bank-account,
+  key account-number,
+  has opening-date,
+  has balance,
+  has account-type,
+  plays offer,
+  plays account-of-receiver,
+  plays account-of-creator;
+
+card sub entity,
+  plays bank-card,
+  key card-number,
+  has name-on-card,
+  has expiry-date,
+  has created-date;
+
+mapping sub entity,
+  has mapping-key,
+  has mapping-value;
+
+mention-mapping sub mapping;
+entity-type-mapping sub mapping;
+attribute-mapping sub mapping;
+
+# relationships
+
+contract sub relation,
+  relates customer,
+  relates offer,
+  relates provider,
+  key identifier,
+  has sign-date;
+
+transaction sub relation,
+  relates account-of-receiver,
+  relates account-of-creator,
+  key identifier,
+  has amount,
+  has reference,
+  has category,
+  has execution-date;
+
+represented-by sub relation,
+  relates bank-account,
+  relates bank-card,
+  key identifier;
+
+# attribute
+
+mapping-key sub attribute,
+  value string;
+
+mapping-value sub attribute,
+  value string;
+
+execution-date sub attribute,
+  value datetime;
+
+created-date sub attribute,
+  value datetime;
+
+expiry-date sub attribute,
+  value datetime;
+
+sign-date sub attribute,
+  value datetime;
+
+opening-date sub attribute,
+  value datetime;
+
+email sub attribute,
+  value string;
+
+name sub attribute,
+  value string;
+
+first-name sub attribute,
+  value string;
+
+last-name sub attribute,
+  value string;
+
+city sub attribute,
+  value string;
+
+headquarters sub attribute,
+  value string;
+
+balance sub attribute,
+  value double;
+
+account-number sub attribute,
+  value string;
+
+account-type sub attribute,
+  value string;
+
+card-number sub attribute,
+  value long;
+
+amount sub attribute,
+  value double;
+
+reference sub attribute,
+  value string;
+
+category sub attribute,
+  value string;
+
+phone-number sub attribute,
+  value string;
+
+gender sub attribute,
+  value string;
+
+country sub attribute,
+  value string;
+
+allowed-residents sub attribute,
+  value string;
+
+free-accounts sub attribute,
+  value boolean;
+
+english-customer-service sub attribute,
+  value boolean;
+
+english-website sub attribute,
+  value boolean;
+
+english-mobile-app sub attribute,
+  value boolean;
+
+free-worldwide-withdrawals sub attribute,
+  value boolean;
+
+identifier sub attribute,
+  value long;
+
+name-on-card sub attribute,
+  value string;
