@@ -46,6 +46,95 @@ function toGraknDateTime(isoString) {
 /******************************************************************************
  * Data loading functions
  *****************************************************************************/
+async function insertBankTransactionRelations(transaction) {
+  logger.info(`Inserting bank transaction data`);
+
+  const data = fs.readFileSync('./data/transaction.csv', 'utf-8');
+  const records = parse(data, {delimiter: ',', columns: true});
+
+  for (let record of records) {
+    /*
+      Example of a record:
+      {
+        identifier: '9',
+        amount: '803.41',
+        'execution-date': '2019-12-16T10:49:31.641890',
+        reference: 'thanks',
+        category: 'transfer',
+        'account-of-receiver': 'DE33510125629974889896',
+        'account-of-creator': 'DE10985785971549145687'
+      }
+    */
+    const query = `match $account-of-receiver isa account, has account-number "${record['account-of-receiver']}";
+                   $account-of-creator isa account, has account-number "${record['account-of-creator']}";
+                   insert $transaction(
+                     account-of-receiver: $account-of-receiver, 
+                     account-of-creator: $account-of-creator
+                   ) isa transaction;
+                   $transaction has identifier ${+record['identifier']};
+                   $transaction has amount ${+record['amount']};
+                   $transaction has reference "${record['reference']}";
+                   $transaction has category "${record['category']}";
+                   $transaction has execution-date ${toGraknDateTime(record['execution-date'])};
+                  `;
+    logger.debug(`Query: ${query}`);
+    await transaction.query(query);
+  }
+
+  logger.debug(`Committing changes to bank transaction data`);
+  await transaction.commit();
+
+  logger.info(`Inserted bank transaction records.`);
+}
+
+async function insertContractRelations(transaction) {
+  logger.info(`Inserting contract data`);
+
+  const data = fs.readFileSync('./data/contract.csv', 'utf-8');
+  const records = parse(data, {delimiter: ',', columns: true});
+
+  for (let record of records) {
+    const query = `insert $card isa card
+                , has card-number ${+record['card-number']}
+                , has name-on-card "${record['name-on-card']}"
+                , has created-date ${toGraknDateTime(record['created-date'])}
+                , has expiry-date ${toGraknDateTime(record['expiry-date'])}
+                ;
+    `;
+    logger.debug(`Query: ${query}`);
+    await transaction.query(query);
+  }
+
+  logger.debug(`Committing changes to contract data`);
+  await transaction.commit();
+
+  logger.info(`Inserted contract records.`);
+}
+
+async function insertRepresentationRelations(transaction) {
+  logger.info(`Inserting representation data`);
+
+  const data = fs.readFileSync('./data/represented-by.csv', 'utf-8');
+  const records = parse(data, {delimiter: ',', columns: true});
+
+  for (let record of records) {
+    const query = `insert $card isa card
+                , has card-number ${+record['card-number']}
+                , has name-on-card "${record['name-on-card']}"
+                , has created-date ${toGraknDateTime(record['created-date'])}
+                , has expiry-date ${toGraknDateTime(record['expiry-date'])}
+                ;
+    `;
+    logger.debug(`Query: ${query}`);
+    await transaction.query(query);
+  }
+
+  logger.debug(`Committing changes to representation data`);
+  await transaction.commit();
+
+  logger.info(`Inserted representation records.`);
+}
+
 async function insertCards(transaction) {
   logger.info(`Inserting cards' data`);
 
@@ -209,7 +298,7 @@ async function insertAccounts(transaction) {
   logger.debug(`Opening a write transaction to perform a write query...`);
   const transaction = await session.transaction().write();
 
-  await insertCards(transaction);
+  await insertBankTransactionRelations(transaction);
 
   logger.info(`Closing session...`);
   await session.close();
