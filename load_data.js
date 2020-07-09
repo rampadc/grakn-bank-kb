@@ -8,6 +8,9 @@ const { createLogger, format, transports } = require('winston');
 const parse = require('csv-parse/lib/sync');
 const fs = require('fs');
 
+/* Used to format dates for Grakn's Java datetime requirement */
+const moment = require('moment');
+
 /******************************************************************************
  * External variables
  *****************************************************************************/
@@ -69,7 +72,49 @@ async function insertPersons(transaction) {
   logger.debug(`Committing changes to person data`);
   await transaction.commit();
 
-  logger.info('Completed inserting person data');
+  logger.info(`Query to test: match $p isa person; get; offset 0; limit 30;`);
+  logger.info(`Inserted ${length(records)} person records.`);
+}
+
+async function insertAccounts(transaction) {
+  const d = moment('2019-01-16T10:49:31.641721').format();
+  console.log(d);
+
+  logger.info(`Inserting accounts' data`);
+
+  const data = fs.readFileSync('./data/account.csv', 'utf-8');
+  const records = parse(data, {delimiter: ',', columns: true});
+  /*
+      Example of a record:
+      {
+        balance: '267.69',
+        'account-number': 'DE82444435329779109646',
+        'opening-date': '2019-01-16T10:49:31.641721',
+        'account-type': 'credit'
+      }
+    */
+  for (let record of records) {
+    /* Converting date from input to Java DateTime format for Grakn,
+        Expected formats: https://dev.grakn.ai/docs/schema/concepts#define-an-attribute
+        Moment.js formats: https://momentjs.com/docs/#/parsing/string-format/
+     */
+    const datetimeString = moment(record['opening-date']).format('YYYY-MM-DDThh:mm:ss.SSS');   
+    const query = `insert $account isa account
+                , has balance ${+record['balance']}
+                , has account-number "${record['account-number']}"
+                , has opening-date ${datetimeString}
+                , has account-type "${record['account-type']}"
+                ;
+    `;
+    logger.debug(`Query: ${query}`);
+    await transaction.query(query);
+  }
+
+  logger.debug(`Committing changes to accounts data`);
+  await transaction.commit();
+
+  logger.info(`Query to test: match $a isa account; get; offset 0; limit 30;`);
+  logger.info(`Inserted account records.`);
 }
 
 /******************************************************************************
@@ -84,7 +129,7 @@ async function insertPersons(transaction) {
   logger.debug(`Opening a write transaction to perform a write query...`);
   const transaction = await session.transaction().write();
 
-  await insertPersons(transaction);
+  await insertAccounts(transaction);
 
   logger.info(`Closing session...`);
   await session.close();
