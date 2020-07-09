@@ -37,8 +37,48 @@ const logger = createLogger({
 });
 
 /******************************************************************************
+ * Utility functions
+ *****************************************************************************/
+function toGraknDateTime(isoString) {
+  return moment(isoString).format('YYYY-MM-DDThh:mm:ss.SSS');   
+}
+
+/******************************************************************************
  * Data loading functions
  *****************************************************************************/
+async function insertCards(transaction) {
+  logger.info(`Inserting cards' data`);
+
+  const data = fs.readFileSync('./data/card.csv', 'utf-8');
+  const records = parse(data, {delimiter: ',', columns: true});
+  /*
+      Example of a record:
+      {
+        'card-number': '70120805493',
+        'name-on-card': 'Catalina Sargent',
+        'created-date': '2019-01-17T10:49:31.641721',
+        'expiry-date': '2029-01-14T10:49:31.641721'
+      }
+    */
+  for (let record of records) {
+    const query = `insert $card isa card
+                , has card-number ${+record['card-number']}
+                , has name-on-card "${record['name-on-card']}"
+                , has created-date ${toGraknDateTime(record['created-date'])}
+                , has expiry-date ${toGraknDateTime(record['expiry-date'])}
+                ;
+    `;
+    logger.debug(`Query: ${query}`);
+    await transaction.query(query);
+  }
+
+  logger.debug(`Committing changes to cards data`);
+  await transaction.commit();
+
+  logger.info(`Query to test: match $c isa card; get; offset 0; limit 30;`);
+  logger.info(`Inserted card records.`);
+}
+
 async function insertPersons(transaction) {
   logger.info(`Inserting persons' data`);
 
@@ -112,7 +152,7 @@ async function insertBanks(transaction) {
     await transaction.query(query);
   }
 
-  logger.debug(`Committing changes to person data`);
+  logger.debug(`Committing changes to banks data`);
   await transaction.commit();
 
   logger.info(`Query to test: match $b isa bank; get; offset 0; limit 30;`);
@@ -138,7 +178,7 @@ async function insertAccounts(transaction) {
         Expected formats: https://dev.grakn.ai/docs/schema/concepts#define-an-attribute
         Moment.js formats: https://momentjs.com/docs/#/parsing/string-format/
      */
-    const datetimeString = moment(record['opening-date']).format('YYYY-MM-DDThh:mm:ss.SSS');   
+    const datetimeString = toGraknDateTime(record['opening-date']);
     const query = `insert $account isa account
                 , has balance ${+record['balance']}
                 , has account-number "${record['account-number']}"
@@ -169,7 +209,7 @@ async function insertAccounts(transaction) {
   logger.debug(`Opening a write transaction to perform a write query...`);
   const transaction = await session.transaction().write();
 
-  await insertBanks(transaction);
+  await insertCards(transaction);
 
   logger.info(`Closing session...`);
   await session.close();
