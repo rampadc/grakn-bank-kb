@@ -46,8 +46,11 @@ function toGraknDateTime(isoString) {
 /******************************************************************************
  * Data loading functions
  *****************************************************************************/
-async function insertBankTransactionRelations(transaction) {
+async function insertBankTransactionRelations(session) {
   logger.info(`Inserting bank transaction data`);
+
+  logger.info(`Opening a write transaction...`);
+  const transaction = await session.transaction().write();
 
   const data = fs.readFileSync('./data/transaction.csv', 'utf-8');
   const records = parse(data, {delimiter: ',', columns: true});
@@ -87,8 +90,11 @@ async function insertBankTransactionRelations(transaction) {
   logger.info(`Inserted bank transaction records.`);
 }
 
-async function insertContractRelations(transaction) {
+async function insertContractRelations(session) {
   logger.info(`Inserting contract data`);
+
+  logger.info(`Opening a write transaction...`);
+  const transaction = await session.transaction().write();
 
   const data = fs.readFileSync('./data/contract.csv', 'utf-8');
   const records = parse(data, {delimiter: ',', columns: true});
@@ -125,8 +131,11 @@ async function insertContractRelations(transaction) {
   logger.info(`Inserted contract records.`);
 }
 
-async function insertRepresentationRelations(transaction) {
+async function insertRepresentationRelations(session) {
   logger.info(`Inserting representation data`);
+
+  logger.info(`Opening a write transaction...`);
+  const transaction = await session.transaction().write();
 
   const data = fs.readFileSync('./data/represented-by.csv', 'utf-8');
   const records = parse(data, {delimiter: ',', columns: true});
@@ -158,8 +167,11 @@ async function insertRepresentationRelations(transaction) {
   logger.info(`Inserted representation records.`);
 }
 
-async function insertCards(transaction) {
+async function insertCards(session) {
   logger.info(`Inserting cards' data`);
+
+  logger.info(`Opening a write transaction...`);
+  const transaction = await session.transaction().write();
 
   const data = fs.readFileSync('./data/card.csv', 'utf-8');
   const records = parse(data, {delimiter: ',', columns: true});
@@ -191,8 +203,11 @@ async function insertCards(transaction) {
   logger.info(`Inserted card records.`);
 }
 
-async function insertPersons(transaction) {
+async function insertPersons(session) {
   logger.info(`Inserting persons' data`);
+
+  logger.info(`Opening a write transaction...`);
+  const transaction = await session.transaction().write();
 
   const data = fs.readFileSync('./data/person.csv', 'utf-8');
   const records = parse(data, {delimiter: ',', columns: true});
@@ -228,8 +243,11 @@ async function insertPersons(transaction) {
   logger.info(`Inserted person records.`);
 }
 
-async function insertBanks(transaction) {
+async function insertBanks(session) {
   logger.info(`Inserting banks' data`);
+  
+  logger.info(`Opening a write transaction...`);
+  const transaction = await session.transaction().write();
 
   const data = fs.readFileSync('./data/bank.csv', 'utf-8');
   const records = parse(data, {delimiter: ',', columns: true});
@@ -271,8 +289,11 @@ async function insertBanks(transaction) {
   logger.info(`Inserted bank records.`);
 }
 
-async function insertAccounts(transaction) {
+async function insertAccounts(session) {
   logger.info(`Inserting accounts' data`);
+
+  logger.info(`Opening a write transaction...`);
+  const transaction = await session.transaction().write();
 
   const data = fs.readFileSync('./data/account.csv', 'utf-8');
   const records = parse(data, {delimiter: ',', columns: true});
@@ -312,6 +333,8 @@ async function insertAccounts(transaction) {
 /******************************************************************************
  * Main code
  *****************************************************************************/
+logger.info('Before running the scripts below, remember to load in the schema.');
+logger.info('grakn console -r HOST:PORT -k KEYSPACE --file schema.gql');
 (async() => {
   const client = new GraknClient(CLIENT_URI);
   const session = await client.session(KEYSPACE);
@@ -319,17 +342,16 @@ async function insertAccounts(transaction) {
   logger.info(`Connected to grakn server at ${CLIENT_URI} using keyspace ${KEYSPACE}`);
 
   logger.debug(`Opening a write transaction to perform a write query...`);
-  const transaction = await session.transaction().write();
-
+  
   /* Insert entity data */
-  await insertPersons(transaction);
-  await insertAccounts(transaction);
-  await insertBanks(transaction);
-  await insertCards(transaction);
+  await insertPersons(session);
+  await insertAccounts(session);
+  await insertBanks(session);
+  await insertCards(session);
   /* Insert relation data */
-  await insertRepresentationRelations(transaction);
-  await insertBankTransactionRelations(transaction);
-  await insertContractRelations(transaction);
+  await insertRepresentationRelations(session);
+  await insertBankTransactionRelations(session);
+  await insertContractRelations(session);
 
   logger.info(`Closing session...`);
   await session.close();
