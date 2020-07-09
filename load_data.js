@@ -73,13 +73,53 @@ async function insertPersons(transaction) {
   await transaction.commit();
 
   logger.info(`Query to test: match $p isa person; get; offset 0; limit 30;`);
-  logger.info(`Inserted ${length(records)} person records.`);
+  logger.info(`Inserted person records.`);
+}
+
+async function insertBanks(transaction) {
+  logger.info(`Inserting banks' data`);
+
+  const data = fs.readFileSync('./data/bank.csv', 'utf-8');
+  const records = parse(data, {delimiter: ',', columns: true});
+  /*
+      Example of a record:
+      {
+        name: 'N26',
+        country: 'Germany',
+        headquarters: 'Berlin',
+        'free-accounts': 'true',
+        'english-customer-service': 'true',
+        'english-website': 'true',
+        'english-mobile-app': 'true',
+        'free-worldwide-withdrawals': 'true',
+        'allowed-residents': 'EU residents'
+      }
+    */
+  for (let record of records) {
+    const query = `insert $bank isa bank
+                , has name "${record['name']}"
+                , has country "${record['country']}"
+                , has headquarters "${record['headquarters']}"
+                , has free-accounts "${record['free-accounts']}"
+                , has english-customer-service "${record['english-customer-service']}"
+                , has english-website "${record['english-website']}"
+                , has english-mobile-app "${record['english-mobile-app']}"
+                , has free-worldwide-withdrawals "${record['free-worldwide-withdrawals']}"
+                , has allowed-residents "${record['allowed-residents']}"
+                ;
+    `;
+    logger.debug(`Query: ${query}`);
+    await transaction.query(query);
+  }
+
+  logger.debug(`Committing changes to person data`);
+  await transaction.commit();
+
+  logger.info(`Query to test: match $b isa bank; get; offset 0; limit 30;`);
+  logger.info(`Inserted bank records.`);
 }
 
 async function insertAccounts(transaction) {
-  const d = moment('2019-01-16T10:49:31.641721').format();
-  console.log(d);
-
   logger.info(`Inserting accounts' data`);
 
   const data = fs.readFileSync('./data/account.csv', 'utf-8');
@@ -129,7 +169,7 @@ async function insertAccounts(transaction) {
   logger.debug(`Opening a write transaction to perform a write query...`);
   const transaction = await session.transaction().write();
 
-  await insertAccounts(transaction);
+  await insertBanks(transaction);
 
   logger.info(`Closing session...`);
   await session.close();
