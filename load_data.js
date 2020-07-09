@@ -94,13 +94,27 @@ async function insertContractRelations(transaction) {
   const records = parse(data, {delimiter: ',', columns: true});
 
   for (let record of records) {
-    const query = `insert $card isa card
-                , has card-number ${+record['card-number']}
-                , has name-on-card "${record['name-on-card']}"
-                , has created-date ${toGraknDateTime(record['created-date'])}
-                , has expiry-date ${toGraknDateTime(record['expiry-date'])}
-                ;
-    `;
+    /* 
+      Example of record:
+      {
+        identifier: '1',
+        'sign-date': '2019-01-13T10:49:31.641721',
+        provider: 'Commerzbank',
+        customer: 'catalinasargent@googlemail.com',
+        offer: 'DE82444435329779109646'
+      }
+    */
+    const query = `match $bank isa bank, has name "${record['provider']}";
+                   $customer isa person, has email "${record['customer']}";
+                   $account isa account, has account-number "${record['offer']}";
+                   insert $contract(
+                     provider: $bank,
+                     customer: $customer,
+                     offer: $account
+                   ) isa contract;
+                   $contract has identifier ${record['identifier']};
+                   $contract has sign-date ${toGraknDateTime(record['sign-date'])};
+                  `;
     logger.debug(`Query: ${query}`);
     await transaction.query(query);
   }
@@ -298,7 +312,7 @@ async function insertAccounts(transaction) {
   logger.debug(`Opening a write transaction to perform a write query...`);
   const transaction = await session.transaction().write();
 
-  await insertBankTransactionRelations(transaction);
+  await insertContractRelations(transaction);
 
   logger.info(`Closing session...`);
   await session.close();
